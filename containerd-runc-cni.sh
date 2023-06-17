@@ -2,6 +2,9 @@
 echo "Installing containerd & runc & cni components"
 mkdir -p k8s && cd k8s
 
+echo "Adding master and nfs to /etc/hosts"
+echo "\n# Kubernetes cluster\n10.100.1.103 nfs\n10.100.1.111 kmaster1\n" >> /etc/hosts
+
 echo "Download containerd and extract to /usr/local"
 wget https://github.com/containerd/containerd/releases/download/v1.7.2/containerd-1.7.2-linux-amd64.tar.gz && tar Cxzvf /usr/local containerd-1.7.2-linux-amd64.tar.gz
 containerd --version
