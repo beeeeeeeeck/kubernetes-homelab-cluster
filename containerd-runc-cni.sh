@@ -46,6 +46,18 @@ wget https://raw.githubusercontent.com/beeeeeeeeck/kubernetes-homelab-cluster/ma
 cat /etc/sysctl.d/k8s.conf
 sysctl --system
 
+echo "Prepare install kubelet & kubeadm & kubectl"
+apt-get update
+NEEDRESTART_MODE=a apt-get install -y apt-transport-https ca-certificates
+curl -fsSL https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-archive-keyring.gpg
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+echo "Install and configure kubelet & kubeadm & kubectl"
+apt-get update
+NEEDRESTART_MODE=a apt-get install -y kubelet kubeadm kubectl
+apt-mark hold kubelet kubeadm kubectl
+systemctl enable --now kubelet
+
 echo "Clean up"
 cd ..
 rm -rf k8s
