@@ -1,23 +1,23 @@
 #!/bin/bash
-echo "Installing containerd & runc & cni components"
+echo "### Installing containerd & runc & cni components"
 mkdir -p k8s && cd k8s
 
-echo "Adding master and nfs to /etc/hosts"
+echo "### Adding single master node and nfs to /etc/hosts"
 echo -e "\n# Kubernetes cluster\n10.100.1.103 nfs\n10.100.1.111 kmaster1\n" >> /etc/hosts
 
-echo "Download containerd and extract to /usr/local"
+echo "### Download containerd and extract to /usr/local"
 wget https://github.com/containerd/containerd/releases/download/v1.7.2/containerd-1.7.2-linux-amd64.tar.gz && tar Cxzvf /usr/local containerd-1.7.2-linux-amd64.tar.gz
 containerd --version
 
-echo "Download containerd service setting and copy to /lib/systemd/system/"
+echo "### Download containerd service setting and copy to /lib/systemd/system/"
 wget https://raw.githubusercontent.com/beeeeeeeeck/kubernetes-homelab-cluster/main/containerd.service -P /lib/systemd/system/
 cat /lib/systemd/system/containerd.service
 
-echo "System reload and enable containerd"
+echo "### System reload and enable containerd"
 systemctl daemon-reload
 systemctl enable --now containerd
 
-echo "Configure containerd"
+echo "### Configure containerd"
 mkdir -p /etc/containerd
 containerd config default | tee /etc/containerd/config.toml
 str1="registry.k8s.io/pause:3.8"
@@ -28,16 +28,21 @@ systemctl restart containerd && systemctl status containerd
 cat /etc/containerd/config.toml
 ps -e | grep containerd
 
-echo "Download runc and install"
+echo "### Download runc and install"
 wget https://github.com/opencontainers/runc/releases/download/v1.1.7/runc.amd64
 install -m 755 runc.amd64 /usr/local/sbin/runc
 
-echo "Download cni and extract to /opt/cni/bin/"
+echo "### Download cni and extract to /opt/cni/bin/"
 wget https://github.com/containernetworking/plugins/releases/download/v1.3.0/cni-plugins-linux-amd64-v1.3.0.tgz
 mkdir -p /opt/cni/bin
 tar xf  cni-plugins-linux-amd64-v1.3.0.tgz -C /opt/cni/bin/
 
-echo "Prepare system setting for k8s"
+echo "### Close swap"
+swapoff -a
+sed -i '/swap/ s%/swap%#/swap%g' /etc/fstab
+cat /etc/fstab
+
+echo "### Prepare system setting for k8s"
 modprobe overlay
 modprobe br_netfilter
 wget https://raw.githubusercontent.com/beeeeeeeeck/kubernetes-homelab-cluster/main/modules-load.d/k8s.conf -P /etc/modules-load.d/
@@ -46,18 +51,18 @@ wget https://raw.githubusercontent.com/beeeeeeeeck/kubernetes-homelab-cluster/ma
 cat /etc/sysctl.d/k8s.conf
 sysctl --system
 
-echo "Prepare install kubelet & kubeadm & kubectl"
+echo "### Prepare install kubelet & kubeadm & kubectl"
 apt-get update
 NEEDRESTART_MODE=a apt-get install -y apt-transport-https ca-certificates
 curl -fsSL https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-archive-keyring.gpg
 echo "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://mirrors.aliyun.com/kubernetes/apt/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
 
-echo "Install and configure kubelet & kubeadm & kubectl"
+echo "### Install and configure kubelet & kubeadm & kubectl"
 apt-get update
 NEEDRESTART_MODE=a apt-get install -y kubelet kubeadm kubectl
 apt-mark hold kubelet kubeadm kubectl
 systemctl enable --now kubelet
 
-echo "Clean up"
+echo "### Clean up"
 cd ..
 rm -rf k8s
